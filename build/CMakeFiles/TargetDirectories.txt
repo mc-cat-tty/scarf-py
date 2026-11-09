@@ -1,0 +1,2 @@
+/home/scarfinator/build/CMakeFiles/edit_cache.dir
+/home/scarfinator/build/CMakeFiles/rebuild_cache.dir

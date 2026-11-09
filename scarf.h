@@ -1,0 +1,197 @@
+#pragma once
+
+#include <opencv2/opencv.hpp>
+#include <tuple>
+
+namespace scarf {
+
+// Set of Centre Active Receptive Fields
+class CARF
+{
+friend class SCARF;
+private:
+    //parameters
+    struct pnt {
+        int u:13;
+        int v:13;
+        int p:3;
+        int c:3;
+    };
+    int N{0};
+
+    //variables
+    int i{0};
+    std::vector<pnt> points;
+    cv::Mat_<double> img;
+    float C;
+
+public:
+
+    CARF(int N, cv::Mat img, float C = 0.3) {
+        points.resize(N, {0, 0, 0, 0});
+        this->N = N;
+        this->img = img; //shallow reference
+        this->C = C;
+    }
+
+    inline void add(const CARF::pnt &p)
+    {
+        if(++i >= N) i = 0;
+        if(points[i].c) img(points[i].v, points[i].u) -= C;
+        if(p.c) img(p.v, p.u) += C;
+        points[i] = p;
+    }
+};
+
+class SCARF
+{
+private:
+    //parameters
+    cv::Size count{{0, 0}};
+    cv::Size dims{{0, 0}};
+
+    //variables
+    cv::Mat_<double> img;
+    std::vector<CARF> rfs;
+    std::vector<std::array<CARF*, 4>> cons_map;
+
+public:
+
+    void initialise(cv::Size img_res, int rf_size, double alpha = 1.0, double C = 0.3)
+    {
+        if(rf_size % 2) rf_size++;
+        initialise(img_res, {(img_res.width/rf_size)-1, (img_res.height/rf_size)-1}, alpha, C);
+    }
+
+    void initialise(cv::Size img_res, cv::Size rf_res, double alpha = 1.0, double C = 0.3)
+    {
+        img = cv::Mat::zeros(img_res, CV_64F);
+        count = rf_res;
+
+        //size of a receptive field removeing some pixels from the border, make sure the receptive field
+        //is an even number
+        dims = {img_res.width / (rf_res.width+1), img_res.height / (rf_res.height+1)};
+        if(dims.height%2) {dims.height--;} 
+        if(dims.width%2) {dims.width--;}
+
+        //N is the maximum amount of pixels in the FIFO
+        int N = dims.area() * alpha * 0.5;
+
+        //make the connection map. One entry per pixel . each entry = [id id id id];
+        cons_map.resize(img_res.area());
+        //make the CARF receptive fields
+        rfs.resize(rf_res.area(), CARF(N, img, C));
+        
+        //for each pixel
+        for(int y = 0; y < img_res.height; y++) {
+            for(int x = 0; x < img_res.width; x++) {
+
+                auto &connection = cons_map[y*img_res.width + x];
+                int i = 0;
+                int xm = x - dims.width/2; int ym = y - dims.height/2;
+
+                //as x/y can be negative we allow rfx and rfy to be negative indices.
+                int rfx = std::floor((double)xm/ dims.width);
+                int rfy = std::floor((double)ym/ dims.height);
+                if(rfx < 0 || rfy < 0 || rfx >= rf_res.width || rfy >= rf_res.height)
+                    connection[i++] = nullptr;
+                else
+                    connection[i++] = &rfs[rfy*rf_res.width+rfx];
+                
+                //fancy modulus to keep ky and kx positive values.
+                int ky = (dims.height+(ym%dims.height))%dims.height;
+                int kx = (dims.width+(xm%dims.width))%dims.width;
+
+                //first find potential suppression indicies
+                bool top{false}, bot{false}, lef{false}, rig{false};
+                if(ky < dims.height/2) top = true;
+                else bot = true;
+                if(kx < dims.width/2) lef = true;
+                else rig = true;
+
+                //get all the rf coordinates
+                std::vector<cv::Point> potentials;
+                if(top) potentials.push_back({rfx, rfy-1});
+                if(bot) potentials.push_back({rfx, rfy+1});
+                if(lef) potentials.push_back({rfx-1, rfy});
+                if(rig) potentials.push_back({rfx+1, rfy});
+                if(top && lef) potentials.push_back({rfx-1, rfy-1});
+                if(top && rig) potentials.push_back({rfx+1, rfy-1});
+                if(bot && lef) potentials.push_back({rfx-1, rfy+1});
+                if(bot && rig) potentials.push_back({rfx+1, rfy+1});
+
+                //if the coordinate is valid add a connection;
+                for(auto &j : potentials) {
+                    if(j.x >= 0 && j.x < rf_res.width && j.y >= 0 && j.y < rf_res.height)
+                        connection[i++] = &rfs[j.y*rf_res.width+j.x];
+                    else
+                        connection[i++] = nullptr;
+                }
+
+            }
+        }
+    }
+
+    inline void update(const int &u, const int &v, const int &p)
+    {
+        auto &conxs = cons_map[v*img.cols+u];
+        if(conxs[0]) conxs[0]->add({u, v, p, 1});
+        if(conxs[1]) conxs[1]->add({u, v, p, 0});
+        if(conxs[2]) conxs[2]->add({u, v, p, 0});
+        if(conxs[3]) conxs[3]->add({u, v, p, 0});
+    }
+
+    cv::Mat_<double> getSurface()
+    {
+        return img;
+    }
+
+    std::vector<cv::Point> getList(int u, int v)
+    {
+        std::vector<cv::Point> p;
+        for(auto &i : rfs[v*count.width+u].points)
+            if(i.c) p.push_back({i.u, i.v});
+        return p;
+    }
+
+    //THIS COULD BE IMPROVED.
+    //INDEXED BY <U, V> - MAYBE A MORE INTUITIVE WAY
+    //STORE DATA AS std::vector<cv::Point> would result in this being a straight copy 
+    std::vector<cv::Point> getAll(int u, int v)
+    {
+        std::vector<cv::Point> p;
+        for(auto &i : rfs[v*count.width+u].points)
+            p.push_back({i.u, i.v});
+        return p;
+    }
+
+    int getN(void)
+    {
+        if(rfs.size()) return rfs[0].N;
+        else return -1;
+    }
+
+    /**
+     * @brief Get the Scarf Params object
+     * 
+     * @return std::tuple<cv::Size count, cv::Size dims, int N, cv::Size border_shift>
+     *         count        : Resolution of SCARF blocks
+     *         dims         : Size of receptive field
+     *         N            : Size of ring buffer in each SCARF block
+     *         border_shift : (HARD CORDED) pixel values for shift size to match origin of image and origin of scarf
+     */
+    std::tuple<cv::Size, cv::Size, int, cv::Size> getScarfParams(void)
+    {
+        int N = -1;
+        if (rfs.size()) N = rfs[0].N;
+        std::tuple<cv::Size, cv::Size, int, cv::Size> scarf_params = std::make_tuple(
+            count,
+            dims,
+            N,
+            cv::Size(dims.width/2, dims.height/2)
+        );
+        return scarf_params;
+    }
+};
+
+}
