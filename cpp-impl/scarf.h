@@ -5,6 +5,7 @@
 #include <vector>
 #include <array>
 #include <cmath>
+#include <stdexcept>
 
 namespace scarf {
 
@@ -71,23 +72,32 @@ public:
 
     void initialise(Size img_res, int rf_size, double alpha = 1.0, double C = 0.3)
     {
+        if(rf_size <= 0) throw std::invalid_argument("scarf: rf_size must be positive");
         if(rf_size % 2) rf_size++;
         initialise(img_res, {(img_res.width/rf_size)-1, (img_res.height/rf_size)-1}, alpha, C);
     }
 
     void initialise(Size img_res, Size rf_res, double alpha = 1.0, double C = 0.3)
     {
-        img = MatD::Zero(img_res.height, img_res.width);
-        count = rf_res;
+        if(img_res.width <= 0 || img_res.height <= 0 || rf_res.width <= 0 || rf_res.height <= 0)
+            throw std::invalid_argument("scarf: img_res and rf_res must be positive");
 
         //size of a receptive field removeing some pixels from the border, make sure the receptive field
         //is an even number
-        dims = {img_res.width / (rf_res.width+1), img_res.height / (rf_res.height+1)};
-        if(dims.height%2) {dims.height--;} 
-        if(dims.width%2) {dims.width--;}
+        Size d = {img_res.width / (rf_res.width+1), img_res.height / (rf_res.height+1)};
+        if(d.height%2) {d.height--;}
+        if(d.width%2) {d.width--;}
 
         //N is the maximum amount of pixels in the FIFO
-        int N = dims.area() * alpha * 0.5;
+        int N = d.area() * alpha * 0.5;
+
+        //validate before touching any state, so a failed call leaves the object unchanged
+        if(d.width <= 0 || d.height <= 0 || N <= 0)
+            throw std::invalid_argument("scarf: image too small for the requested receptive-field grid (or alpha too small)");
+
+        img = MatD::Zero(img_res.height, img_res.width);
+        count = rf_res;
+        dims = d;
 
         //make the connection map. One entry per pixel . each entry = [id id id id];
         cons_map.resize(img_res.area());
@@ -146,6 +156,8 @@ public:
 
     inline void update(const int &u, const int &v, const int &p)
     {
+        if(cons_map.empty()) throw std::runtime_error("scarf: initialise() must be called before update()");
+        if(u < 0 || u >= img.cols() || v < 0 || v >= img.rows()) throw std::out_of_range("scarf: event outside the surface");
         auto &conxs = cons_map[v*img.cols()+u];
         if(conxs[0]) conxs[0]->add({u, v, p, 1});
         if(conxs[1]) conxs[1]->add({u, v, p, 0});
