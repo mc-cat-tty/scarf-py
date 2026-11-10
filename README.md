@@ -61,7 +61,7 @@ class SCARF(builtins.object)
 ```
 
 ## Credits
-The original C++ implementation, found in `cpp-impl` comes from [IIT's `robotology/event-driven` repository]{https://github.com/robotology/event-driven/tree/main/ev2/event-driven/algs}.
+The original C++ implementation, found in `cpp-impl` comes from [IIT's `robotology/event-driven` repository](https://github.com/robotology/event-driven/tree/main/ev2/event-driven/algs).
 
 Motivations and working principles of SCARF can be found in the following papers (not mine):
 ```
