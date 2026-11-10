@@ -24,9 +24,9 @@ build = "cp312-*"
 # Necessary to see build output from the actual compilation
 build-verbosity = 1
 
-# Optional: run pytest to ensure that the package was correctly built
-# test-command = "pytest {project}/tests"
-# test-requires = "pytest"
+# Run pytest to ensure that the package was correctly built
+test-command = "pytest {project}/tests/test_edge_inputs.py"
+test-requires = "pytest"
 
 # Needed for full C++17 support on macOS
 [tool.cibuildwheel.macos.environment]

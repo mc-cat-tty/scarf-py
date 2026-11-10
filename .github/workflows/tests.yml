@@ -1,0 +1,79 @@
+name: Tests
+
+# Equivalence tests (original OpenCV implementation vs. the Python port) and
+# edge-input tests, on Linux and both macOS architectures. The three jobs of the
+# matrix run in parallel.
+#
+# The reference driver (tests/ref_scarf, built against OpenCV compiled from
+# source) is the slow part, but it does not depend on the Python package. Only
+# the resulting ~4 MB binary is cached, keyed on the files it is built from, so
+# cached runs skip the OpenCV build entirely.
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]   # also seeds the cache, which pull requests can read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15-intel, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+        cache: pip
+        cache-dependency-path: pyproject.toml
+
+    # --- reference driver, cached as a single binary ---------------------
+    - name: Restore reference binary
+      id: ref-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ref-bin
+        # bump the "v1" to invalidate the cache by hand
+        key: ref-scarf-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tests/CMakeLists.txt', 'tests/ref_scarf.cpp', 'tests/original_impl.h') }}
+
+    - name: Build reference (original implementation + OpenCV core from source)
+      if: steps.ref-cache.outputs.cache-hit != 'true'
+      run: |
+        cmake -S tests -B tests/build/ref -DCMAKE_BUILD_TYPE=Release
+        cmake --build tests/build/ref --parallel
+        mkdir -p ref-bin
+        cp tests/build/ref/ref_scarf ref-bin/ref_scarf
+
+    # Saved right after the build, so a later test failure doesn't throw it away.
+    - name: Save reference binary
+      if: steps.ref-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ref-bin
+        key: ${{ steps.ref-cache.outputs.cache-primary-key }}
+
+    # --- the package under test ------------------------------------------
+    - name: Install the package and test dependencies
+      run: pip install . pytest
+
+    - name: Run the tests
+      run: |
+        chmod +x ref-bin/ref_scarf
+        pytest tests -ra
+      env:
+        SCARF_REQUIRE_REF: "1"   # fail, don't skip, if the reference is unusable
+        SCARF_REF_BINARY: ${{ github.workspace }}/ref-bin/ref_scarf
