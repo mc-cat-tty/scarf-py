@@ -2,6 +2,30 @@
 cmake_minimum_required(VERSION 3.5)
 
 project( scarfinator )
+
+if (NOT SKBUILD)
+  message(WARNING "\
+  This CMake file is meant to be executed using 'scikit-build-core'.
+  Running it directly will almost certainly not produce the desired
+  result. If you are a user trying to install this package, use the
+  command below, which will install all necessary build dependencies,
+  compile the package in an isolated environment, and then install it.
+  =====================================================================
+   $ pip install .
+  =====================================================================
+  If you are a software developer, and this is your own package, then
+  it is usually much more efficient to install the build dependencies
+  in your environment once and use the following command that avoids
+  a costly creation of a new virtual environment at every compilation:
+  =====================================================================
+   $ pip install nanobind scikit-build-core[pyproject]
+   $ pip install --no-build-isolation -ve .
+  =====================================================================
+  You may optionally add -Ceditable.rebuild=true to auto-rebuild when
+  the package is imported. Otherwise, you need to rerun the above
+  after editing C++ files.")
+endif()
+
 find_package(Eigen3 REQUIRED NO_MODULE)
 
 if (CMAKE_VERSION VERSION_LESS 3.18)
@@ -10,7 +34,9 @@ else()
   set(DEV_MODULE Development.Module)
 endif()
 
-find_package(Python 3.10 COMPONENTS Interpreter ${DEV_MODULE} REQUIRED)
+find_package(Python 3.10
+  REQUIRED COMPONENTS Interpreter Development.Module
+  OPTIONAL_COMPONENTS Development.SABIModule)
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
@@ -35,5 +61,5 @@ nanobind_add_stub(
 
 target_link_libraries(scarf PRIVATE Eigen3::Eigen)
 
-install(TARGETS scarf LIBRARY DESTINATION .)
-install(FILES ${CMAKE_BINARY_DIR}/scarf.pyi DESTINATION .)
+install(TARGETS scarf LIBRARY DESTINATION scarf)
+install(FILES ${CMAKE_BINARY_DIR}/scarf.pyi DESTINATION scarf)
