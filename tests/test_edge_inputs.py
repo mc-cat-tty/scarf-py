@@ -289,10 +289,12 @@ def test_failed_initialise_on_fresh_object_keeps_it_uninitialised():
 
 
 # --------------------------------------------------------------------------- known problems (findings)
-@pytest.mark.xfail(strict=True, reason=(
+# Not strict: this is a use-after-free, so whether it crashes depends on the allocator. It segfaults
+# on Linux but can silently "pass" on macOS (freed memory not reused yet), which is luck, not a fix.
+@pytest.mark.xfail(strict=False, reason=(
     "getSurface() returns a view (rv_policy::reference_internal) into the C++ matrix; a later "
     "initialise() with a different size reallocates it, leaving earlier arrays dangling "
-    "(use-after-free, segfault for large surfaces)"))
+    "(use-after-free: segfaults on Linux, may appear to work elsewhere)"))
 def test_surface_array_survives_reinitialise():
     res = run_isolated("""
         s = scarf.SCARF()
