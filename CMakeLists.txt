@@ -2,9 +2,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 project( scarfinator )
-find_package( OpenCV REQUIRED core imgproc )
-include_directories( ${OpenCV_INCLUDE_DIRS} )
-message( "OpenCV include directory: ${OpenCV_INCLUDE_DIRS}" )
+find_package(Eigen3 REQUIRED NO_MODULE)
 
 if (CMAKE_VERSION VERSION_LESS 3.18)
   set(DEV_MODULE Development)
@@ -35,8 +33,7 @@ nanobind_add_stub(
   DEPENDS scarf
 )
 
-target_include_directories(scarf PRIVATE ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(scarf PRIVATE ${OpenCV_LIBS})
+target_link_libraries(scarf PRIVATE Eigen3::Eigen)
 
 install(TARGETS scarf LIBRARY DESTINATION .)
 install(FILES ${CMAKE_BINARY_DIR}/scarf.pyi DESTINATION .)

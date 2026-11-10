@@ -1,9 +1,21 @@
 #pragma once
 
-#include <opencv2/opencv.hpp>
+#include <Eigen/Dense>
 #include <tuple>
+#include <vector>
+#include <array>
+#include <cmath>
 
 namespace scarf {
+
+struct Size {
+    int width; int height;
+    inline int area() const { return width*height; }
+};
+
+struct Point { int x; int y; };
+
+using MatD = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 // Set of Centre Active Receptive Fields
 class CARF
@@ -22,23 +34,23 @@ private:
     //variables
     int i{0};
     std::vector<pnt> points;
-    cv::Mat_<double> img;
+    MatD* img;
     float C;
 
 public:
 
-    CARF(int N, cv::Mat img, float C = 0.3) {
+    CARF(int N, MatD *img, float C = 0.3) {
         points.resize(N, {0, 0, 0, 0});
         this->N = N;
-        this->img = img; //shallow reference
+        this->img = img; // shallow reference replaced with pointer
         this->C = C;
     }
 
     inline void add(const CARF::pnt &p)
     {
         if(++i >= N) i = 0;
-        if(points[i].c) img(points[i].v, points[i].u) -= C;
-        if(p.c) img(p.v, p.u) += C;
+        if(points[i].c) (*img)(points[i].v, points[i].u) -= C;
+        if(p.c) (*img)(p.v, p.u) += C;
         points[i] = p;
     }
 };
@@ -47,25 +59,25 @@ class SCARF
 {
 private:
     //parameters
-    cv::Size count{{0, 0}};
-    cv::Size dims{{0, 0}};
+    Size count{0, 0};
+    Size dims{0, 0};
 
     //variables
-    cv::Mat_<double> img;
+    MatD img;
     std::vector<CARF> rfs;
     std::vector<std::array<CARF*, 4>> cons_map;
 
 public:
 
-    void initialise(cv::Size img_res, int rf_size, double alpha = 1.0, double C = 0.3)
+    void initialise(Size img_res, int rf_size, double alpha = 1.0, double C = 0.3)
     {
         if(rf_size % 2) rf_size++;
         initialise(img_res, {(img_res.width/rf_size)-1, (img_res.height/rf_size)-1}, alpha, C);
     }
 
-    void initialise(cv::Size img_res, cv::Size rf_res, double alpha = 1.0, double C = 0.3)
+    void initialise(Size img_res, Size rf_res, double alpha = 1.0, double C = 0.3)
     {
-        img = cv::Mat::zeros(img_res, CV_64F);
+        img = MatD::Zero(img_res.height, img_res.width);
         count = rf_res;
 
         //size of a receptive field removeing some pixels from the border, make sure the receptive field
@@ -80,7 +92,7 @@ public:
         //make the connection map. One entry per pixel . each entry = [id id id id];
         cons_map.resize(img_res.area());
         //make the CARF receptive fields
-        rfs.resize(rf_res.area(), CARF(N, img, C));
+        rfs.assign(rf_res.area(), CARF(N, &img, C));
         
         //for each pixel
         for(int y = 0; y < img_res.height; y++) {
@@ -110,7 +122,7 @@ public:
                 else rig = true;
 
                 //get all the rf coordinates
-                std::vector<cv::Point> potentials;
+                std::vector<Point> potentials;
                 if(top) potentials.push_back({rfx, rfy-1});
                 if(bot) potentials.push_back({rfx, rfy+1});
                 if(lef) potentials.push_back({rfx-1, rfy});
@@ -134,21 +146,21 @@ public:
 
     inline void update(const int &u, const int &v, const int &p)
     {
-        auto &conxs = cons_map[v*img.cols+u];
+        auto &conxs = cons_map[v*img.cols()+u];
         if(conxs[0]) conxs[0]->add({u, v, p, 1});
         if(conxs[1]) conxs[1]->add({u, v, p, 0});
         if(conxs[2]) conxs[2]->add({u, v, p, 0});
         if(conxs[3]) conxs[3]->add({u, v, p, 0});
     }
 
-    cv::Mat_<double> getSurface()
-    {
+    const MatD& getSurface()
+    const {
         return img;
     }
 
-    std::vector<cv::Point> getList(int u, int v)
+    std::vector<Point> getList(int u, int v)
     {
-        std::vector<cv::Point> p;
+        std::vector<Point> p;
         for(auto &i : rfs[v*count.width+u].points)
             if(i.c) p.push_back({i.u, i.v});
         return p;
@@ -156,10 +168,10 @@ public:
 
     //THIS COULD BE IMPROVED.
     //INDEXED BY <U, V> - MAYBE A MORE INTUITIVE WAY
-    //STORE DATA AS std::vector<cv::Point> would result in this being a straight copy 
-    std::vector<cv::Point> getAll(int u, int v)
+    //STORE DATA AS std::vector<Point> would result in this being a straight copy 
+    std::vector<Point> getAll(int u, int v)
     {
-        std::vector<cv::Point> p;
+        std::vector<Point> p;
         for(auto &i : rfs[v*count.width+u].points)
             p.push_back({i.u, i.v});
         return p;
@@ -174,21 +186,21 @@ public:
     /**
      * @brief Get the Scarf Params object
      * 
-     * @return std::tuple<cv::Size count, cv::Size dims, int N, cv::Size border_shift>
+     * @return std::tuple<Size count, Size dims, int N, Size border_shift>
      *         count        : Resolution of SCARF blocks
      *         dims         : Size of receptive field
      *         N            : Size of ring buffer in each SCARF block
      *         border_shift : (HARD CORDED) pixel values for shift size to match origin of image and origin of scarf
      */
-    std::tuple<cv::Size, cv::Size, int, cv::Size> getScarfParams(void)
+    std::tuple<Size, Size, int, Size> getScarfParams(void)
     {
         int N = -1;
         if (rfs.size()) N = rfs[0].N;
-        std::tuple<cv::Size, cv::Size, int, cv::Size> scarf_params = std::make_tuple(
+        std::tuple<Size, Size, int, Size> scarf_params = std::make_tuple(
             count,
             dims,
             N,
-            cv::Size(dims.width/2, dims.height/2)
+            Size{dims.width/2, dims.height/2}
         );
         return scarf_params;
     }
