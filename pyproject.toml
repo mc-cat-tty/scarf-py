@@ -8,6 +8,7 @@ version = "1.0.0"
 description = "Python (nanobind-ed) porting of the SCARF (Set of Center Active Receptive Fields) velocity invariant events representation."
 readme = "README.md"
 requires-python = ">=3.12"
+dependencies = ["numpy"]
 
 [tool.scikit-build]
 minimum-version = "0.4"

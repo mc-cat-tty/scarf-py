@@ -26,7 +26,20 @@ if (NOT SKBUILD)
   after editing C++ files.")
 endif()
 
-find_package(Eigen3 REQUIRED NO_MODULE)
+# --- Get Eigen3 library ---
+# find_package(Eigen3 REQUIRED NO_MODULE)
+include(FetchContent)
+set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(EIGEN_BUILD_PKGCONFIG OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(Eigen3
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+  GIT_TAG 3.4.0
+  GIT_SHALLOW TRUE
+  FIND_PACKAGE_ARGS NO_MODULE)    # use a system Eigen if present (CMake >= 3.24)
+FetchContent_MakeAvailable(Eigen3)
+# --- Eigen3 library ---
 
 if (CMAKE_VERSION VERSION_LESS 3.18)
   set(DEV_MODULE Development)
