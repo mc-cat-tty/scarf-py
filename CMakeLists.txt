@@ -25,7 +25,7 @@ execute_process(
 find_package(nanobind CONFIG REQUIRED)
 
 include_directories(cpp-impl/)
-nanobind_add_module(scarf cpp-impl/scarf.cpp)
+nanobind_add_module(scarf cpp-impl/scarf.cpp STABLE_ABI)
 
 nanobind_add_stub(
   scarf_stub
@@ -37,3 +37,6 @@ nanobind_add_stub(
 
 target_include_directories(scarf PRIVATE ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(scarf PRIVATE ${OpenCV_LIBS})
+
+install(TARGETS scarf LIBRARY DESTINATION .)
+install(FILES ${CMAKE_BINARY_DIR}/scarf.pyi DESTINATION .)
