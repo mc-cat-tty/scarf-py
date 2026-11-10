@@ -1,6 +1,10 @@
 # SCARF Python
 Python (nanobind-ed) porting of the SCARF (Set of Center Active Receptive Fields) velocity invariant events representation.
 
+By installing this package you will get a Python class with the following functionalities:
+```
+```
+
 ## Credits
 The original C++ implementation, found in `cpp-impl` comes from [IIT's `robotology/event-driven` repository]{https://github.com/robotology/event-driven/tree/main/ev2/event-driven/algs}.
 

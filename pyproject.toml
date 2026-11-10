@@ -3,7 +3,7 @@ requires = ["scikit-build-core >=0.4.3", "nanobind >=1.3.2", "numpy"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "scarf"
+name = "scarf-py"
 version = "1.0.0"
 description = "Python (nanobind-ed) porting of the SCARF (Set of Center Active Receptive Fields) velocity invariant events representation."
 readme = "README.md"

@@ -1,3 +1,7 @@
+/*
+* File taken from: https://github.com/robotology/event-driven/tree/main/ev2/event-driven/algs | commit caea54e79e1be11ded762ff4f7c78b1f0a58772e
+*/
+
 #pragma once
 
 #include <Eigen/Dense>
