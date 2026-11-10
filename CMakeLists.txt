@@ -61,5 +61,5 @@ nanobind_add_stub(
 
 target_link_libraries(scarf PRIVATE Eigen3::Eigen)
 
-install(TARGETS scarf LIBRARY DESTINATION scarf)
-install(FILES ${CMAKE_BINARY_DIR}/scarf.pyi DESTINATION scarf)
+install(TARGETS scarf LIBRARY DESTINATION .)
+install(FILES ${CMAKE_BINARY_DIR}/scarf.pyi DESTINATION .)
