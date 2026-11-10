@@ -1,10 +1,5 @@
 #include <scarf.h>
 #include <nanobind/nanobind.h>
-
-using namespace scarf;
-namespace nb = nanobind;
-
-#include <nanobind/nanobind.h>
 #include <opencv2/core.hpp>
 
 namespace nb = nanobind;
@@ -41,10 +36,27 @@ template <> struct type_caster<cv::Size> {
 
 } // namespace nanobind::detail
 
+using namespace scarf;
+using namespace nb::literals;
 
 NB_MODULE(scarf, m) {
     nb::class_<SCARF>(m, "SCARF")
         .def(nb::init<>())
-        .def("initialise", nb::overload_cast<cv::Size, int, double, double>(&SCARF::initialise), "Initialize from receptive field size")
-        .def("initialise", nb::overload_cast<cv::Size, cv::Size, double, double>(&SCARF::initialise), "Initialize from receptive field resolution");
+        .def(
+            "initialise", nb::overload_cast<cv::Size, int, double, double>(&SCARF::initialise),
+            "img_res"_a, "rf_size"_a, "alpha"_a = 1.0, "C"_a=0.3, "Initialize from receptive field size"
+        )
+        .def(
+            "initialise", nb::overload_cast<cv::Size, cv::Size, double, double>(&SCARF::initialise),
+            "img_res"_a, "rf_res"_a, "alpha"_a = 1.0, "C"_a=0.3, "Initialize from receptive field resolution"
+        )
+        .def(
+            "update", &SCARF::update,
+            "u"_a, "v"_a, "p"_a, "Update the surface with an incoming event: <u, v, polarity>"
+        );
+        // .def("getSurface", &SCARF::getSurface)
+        // .def("getList", &SCARF::getList)
+        // .def("getAll", &SCARF::getAll)
+        // .def("getN", &SCARF::getN)
+        // .def("getScarfParams", &SCARF::getScarfParams)
 }
