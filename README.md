@@ -1,8 +1,11 @@
 # SCARF Python
+
+[![Tests](https://github.com/mc-cat-tty/scarf-py/actions/workflows/tests.yml/badge.svg)](https://github.com/mc-cat-tty/scarf-py/actions/workflows/tests.yml)
+
 Python (nanobind-ed) porting of the SCARF (Set of Center Active Receptive Fields) velocity invariant events representation.
 
 By installing this package you will get a Python class with the following functionalities:
-```
+```python
 class SCARF(builtins.object)
  |  SCARF(*args, **kwargs)
  |
@@ -60,6 +63,36 @@ class SCARF(builtins.object)
  |      Update the surface with an incoming event: <u, v, polarity>
 ```
 
+## Installation
+### Quick way (suggested)
+Download the wheel (*.whl*) file compatible with your platform (arch and OS) from the latest release, then run:
+```bash
+pip install <scarf_py-VERSION-cp312-abi3-PLATOFRM>.whl
+```
+
+## Build from source
+Download this repository, then run:
+```bash
+pip install .
+```
+
+Make sure that you have `cmake` and a C++ compiler installed in your working environment, otherwise installation will fail
+while trying to compile the bindings and the C++ source code. Also, ensure that access to the network is available and that
+`curl` and `git` are installed into your systems: they are needed to build Eigen3 from source.
+
+After the installation a Python module named `scarf` will be availabe:
+```python
+import scarf
+
+s = scarf.SCARF()
+s.initialise((100, 100), (10, 10))
+s.update(5, 5, 1)
+s.update(5, 5, 0)
+s.update(15, 15, 1)
+surf = s.getSurface()
+...
+```
+
 ## Running the AI-generated tests
 
 The test suite checks two things: that the Python port gives the **same results as the original C++ implementation**, and that **bad inputs raise clean Python exceptions** instead of crashing the interpreter.
@@ -107,7 +140,7 @@ python tests/make_fixture.py --h5 <path/to/data.h5>
 ```
 
 ## Credits
-The original C++ implementation, found in `cpp-impl` comes from [IIT's `robotology/event-driven` repository](https://github.com/robotology/event-driven/tree/main/ev2/event-driven/algs).
+The original C++ implementation, found in `cpp-impl`, comes from [IIT's `robotology/event-driven` repository](https://github.com/robotology/event-driven/tree/main/ev2/event-driven/algs).
 
 Motivations and working principles of SCARF can be found in the following papers (not mine):
 ```
