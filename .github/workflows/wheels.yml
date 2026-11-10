@@ -59,14 +59,16 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published'
     permissions:
-      id-token: write
+      contents: write
 
     steps:
-    - uses: actions/setup-python@v6
     - uses: actions/download-artifact@v6
       with:
         path: dist
         pattern: dist-*
         merge-multiple: true
 
-    - uses: pypa/gh-action-pypi-publish@release/v1
+    - name: Attach to GitHub release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release upload "${{ github.event.release.tag_name }}" dist/* --repo "${{ github.repository }}" --clobber
