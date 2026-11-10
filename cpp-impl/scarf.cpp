@@ -1,6 +1,8 @@
 #include <scarf.h>
 #include <type_casters.h>
+
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/vector.h>
 #include <nanobind/eigen/dense.h>
 
 namespace nb = nanobind;
@@ -25,8 +27,11 @@ NB_MODULE(scarf, m) {
             "update", &SCARF::update,
             "u"_a, "v"_a, "p"_a, "Update the surface with an incoming event: <u, v, polarity>"
         )
-        .def("getSurface", &SCARF::getSurface, nb::rv_policy::reference_internal);
-        // .def("getList", &SCARF::getList)
+        .def("getSurface", &SCARF::getSurface, nb::rv_policy::reference_internal)
+        .def(
+            "getList", &SCARF::getList,
+            "u"_a, "v"_a, "Get a list of events, in <x, y> format, stored in the receptive at coordinates <u, v>"
+        );
         // .def("getAll", &SCARF::getAll)
         // .def("getN", &SCARF::getN)
         // .def("getScarfParams", &SCARF::getScarfParams)
