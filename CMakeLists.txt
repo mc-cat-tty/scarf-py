@@ -27,5 +27,13 @@ find_package(nanobind CONFIG REQUIRED)
 include_directories(cpp-impl/)
 nanobind_add_module(scarf cpp-impl/scarf.cpp)
 
+nanobind_add_stub(
+  scarf_stub
+  MODULE scarf
+  OUTPUT scarf.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:scarf>
+  DEPENDS scarf
+)
+
 target_include_directories(scarf PRIVATE ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(scarf PRIVATE ${OpenCV_LIBS})
