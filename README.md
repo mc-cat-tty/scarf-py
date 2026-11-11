@@ -93,6 +93,32 @@ surf = s.getSurface()
 ...
 ```
 
+## Results
+
+Speed of the Python binding (this project) compared with a pure-Python CPU implementation (numpy + torch) and the native C++ code.
+
+### Common setup
+| | |
+|---|---|
+| CPU | Intel Xeon Silver 4310 @ 2.10 GHz (24 cores / 48 threads) |
+| Architecture | x86_64 |
+| RAM | 503 GB |
+| OS / toolchain | Ubuntu 24.04, Linux 7.0, Python 3.12.3, NumPy 2.5.4, g++ 13.3.0 (`-O3 -DNDEBUG`) |
+| Data | Real sequence from H3.6M dataset; 500,000 events from a 640×480 sensor |
+| SCARF parameters | Receptive field size = 40, alpha = 1.0, C = 0.3 |
+| Runs | 10 per implementation; each recreating the SCARF object from scratch and processing the whole slice |
+| Metric | Only event processing is timed. Speedup refers to the improvement compared to the pure-Python baseline; values are mean ± sample std dev over the 10 runs. |
+
+### Table
+| Implementation | Hardware used | ns/event | Mevents/s | Speedup vs pure Python |
+|---|---|---|---|---|
+| Pure Python (NumPy + PyTorch) | CPU only (single thread) | 6743.3 ± 127.4 | 0.148 ± 0.003 | 1.00 ± 0.02 |
+| Python binding (nanobind, `SCARF.update()` called per event from a Python loop) | CPU only (single thread) | 200.4 ± 7.7 | 4.996 ± 0.174 | 33.7 ± 1.2 |
+| Native C++ (`scarf.h` called directly, no Python) | CPU only (single thread) | 67.3 ± 1.3 | 14.874 ± 0.285 | 100.3 ± 1.9 |
+
+On this stream the binding and `scarf.py` produce the same surface (max absolute difference 7e-7, from float32 vs float64 accumulation).
+The binding is ~3× slower than native C++ because of the per-call Python/nanobind overhead.
+
 ## Running the AI-generated tests
 
 The test suite checks two things: that the Python port gives the **same results as the original C++ implementation**, and that **bad inputs raise clean Python exceptions** instead of crashing the interpreter.
