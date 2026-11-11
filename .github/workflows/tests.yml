@@ -12,8 +12,6 @@ name: Tests
 on:
   workflow_dispatch:
   pull_request:
-  push:
-    branches: [main]   # also seeds the cache, which pull requests can read
 
 concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}

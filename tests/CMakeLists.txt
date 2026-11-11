@@ -98,6 +98,7 @@ else()
       -DWITH_LAPACK=OFF
       -DWITH_CUDA=OFF
       -DWITH_PROTOBUF=OFF
+      -DWITH_CAROTENE=OFF
       # fixed install layout (some distros would otherwise use lib64)
       -DOPENCV_LIB_INSTALL_PATH=lib
       -DOPENCV_3P_LIB_INSTALL_PATH=lib/opencv4/3rdparty
