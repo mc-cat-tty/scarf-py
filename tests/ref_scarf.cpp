@@ -1,3 +1,8 @@
+/*
+* File taken from: https://github.com/robotology/event-driven/tree/main/ev2/event-driven/algs | commit caea54e79e1be11ded762ff4f7c78b1f0a58772e
+*/
+
+
 // Reference driver for the ORIGINAL (OpenCV-based) SCARF implementation in
 // original_impl.h. It is used by test_equivalence.py to compare the original
 // against the Eigen/nanobind port. Built by tests/CMakeLists.txt (standalone,
